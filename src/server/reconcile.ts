@@ -117,7 +117,7 @@ export async function writeAudit(
       action,
       entity,
       entity_id,
-      detail,
+      detail: detail as Prisma.InputJsonValue,
     },
   });
 }

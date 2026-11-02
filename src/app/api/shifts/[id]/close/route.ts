@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api";
 import { shiftCloseNote } from "@/lib/ai/client";
@@ -59,7 +60,7 @@ export async function POST(
       flow_key: "close_shift",
       idempotency_key: computed.idempotency_key,
       status: computed.status,
-      redacted_input: computed.redacted_input,
+      redacted_input: computed.redacted_input as Prisma.InputJsonValue,
       log: {
         steps: [
           "Sum tickets",
