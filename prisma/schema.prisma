@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model AppUser {
+  id   String @id
+  name String
+  role String
+
+  ownedCustomers Customer[] @relation("CustomerOwner")
+
+  @@map("app_user")
+}
+
+model Customer {
+  id           String  @id
+  name         String
+  segment      String
+  tax_code     String?
+  phone        String?
+  district     String?
+  owner_user_id String
+  owner        AppUser @relation("CustomerOwner", fields: [owner_user_id], references: [id])
+
+  activities  CrmActivity[]
+  salesOrders SalesOrder[]
+
+  @@map("customer")
+}
+
+model CrmActivity {
+  id          String   @id
+  customer_id String
+  customer    Customer @relation(fields: [customer_id], references: [id])
+  kind        String
+  body        String
+  at          DateTime @db.Timestamptz
+
+  @@map("crm_activity")
+}
+
+model Item {
+  sku             String @id
+  name_en         String
+  name_vi         String
+  unit_price_vnd  Int
+  vat_rate_bps    Int
+
+  orderLines   SalesOrderLine[]
+  invoiceLines InvoiceLine[]
+  stockMoves   StockMove[]
+
+  @@map("item")
+}
+
+model SalesOrder {
+  id          String   @id
+  customer_id String
+  customer    Customer @relation(fields: [customer_id], references: [id])
+  status      String
+  ordered_on  DateTime @db.Date
+  note        String?
+
+  lines      SalesOrderLine[]
+  invoices   Invoice[]
+  stockMoves StockMove[]
+
+  @@map("sales_order")
+}
+
+model SalesOrderLine {
+  id             String @id
+  order_id       String
+  order          SalesOrder @relation(fields: [order_id], references: [id])
+  sku            String
+  item           Item @relation(fields: [sku], references: [sku])
+  qty            Int
+  unit_price_vnd Int
+
+  @@map("sales_order_line")
+}
+
+model Invoice {
+  id            String   @id
+  order_id      String?
+  order         SalesOrder? @relation(fields: [order_id], references: [id])
+  number        String   @unique
+  status        String
+  issued_on     DateTime? @db.Date
+  subtotal_vnd  Int
+  vat_vnd       Int
+  total_vnd     Int
+  narration_en  String?
+  narration_vi  String?
+  narration_mode String?
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  lines    InvoiceLine[]
+  recCases RecCase[]
+
+  @@map("invoice")
+}
+
+model InvoiceLine {
+  id                String @id
+  invoice_id        String
+  invoice           Invoice @relation(fields: [invoice_id], references: [id])
+  sku               String
+  item              Item @relation(fields: [sku], references: [sku])
+  qty               Int
+  unit_price_vnd    Int
+  line_subtotal_vnd Int
+
+  @@map("invoice_line")
+}
+
+model StockMove {
+  id        String   @id
+  sku       String
+  item      Item @relation(fields: [sku], references: [sku])
+  qty       Int
+  direction String
+  reason    String
+  order_id  String?
+  order     SalesOrder? @relation(fields: [order_id], references: [id])
+  at        DateTime @db.Timestamptz
+
+  @@map("stock_move")
+}
+
+model PosShift {
+  id               String @id
+  outlet_id        String
+  business_date    DateTime @db.Date
+  status           String
+  cash_vnd         Int    @default(0)
+  card_vnd         Int    @default(0)
+  ticket_total_vnd Int    @default(0)
+  break_vnd        Int    @default(0)
+
+  tickets  PosTicket[]
+  recCases RecCase[]
+
+  @@map("pos_shift")
+}
+
+model PosTicket {
+  id        String @id
+  shift_id  String
+  shift     PosShift @relation(fields: [shift_id], references: [id])
+  ticket_no String
+  total_vnd Int
+  paid_via  String
+
+  @@map("pos_ticket")
+}
+
+model BankLine {
+  id             String @id
+  posted_on      DateTime @db.Date
+  amount_vnd     Int
+  description    String
+  account_last4  String
+
+  recCase RecCase?
+
+  @@map("bank_line")
+}
+
+model RecCase {
+  id             String @id
+  bank_line_id   String @unique
+  bank_line      BankLine @relation(fields: [bank_line_id], references: [id])
+  status         String
+  invoice_id     String?
+  invoice        Invoice? @relation(fields: [invoice_id], references: [id])
+  shift_id       String?
+  shift          PosShift? @relation(fields: [shift_id], references: [id])
+  confidence     Decimal @db.Decimal(4, 2)
+  needs_choice   Boolean @default(false)
+  explanation_en String?
+  explanation_vi String?
+  mode           String?
+
+  @@map("rec_case")
+}
+
+model AutomationFlow {
+  key         String @id
+  name_en     String
+  name_vi     String
+  definition  Json
+
+  runs AutomationRun[]
+
+  @@map("automation_flow")
+}
+
+model AutomationRun {
+  id               String   @id
+  flow_key         String
+  flow             AutomationFlow @relation(fields: [flow_key], references: [key])
+  idempotency_key  String   @unique
+  status           String
+  log              Json
+  redacted_input   Json
+  created_at       DateTime @default(now()) @db.Timestamptz
+
+  @@map("automation_run")
+}
+
+model ProcessStep {
+  id          String @id
+  stream      String
+  sort_order  Int
+  name_en     String
+  name_vi     String
+  owner_role  String
+  input_en    String
+  output_en   String
+  system_name String
+  pain_en     String
+  pain_vi     String
+
+  requirements Requirement[]
+
+  @@map("process_step")
+}
+
+model Requirement {
+  id            String @id
+  step_id       String
+  step          ProcessStep @relation(fields: [step_id], references: [id])
+  statement_en  String
+  statement_vi  String
+  priority      String
+  acceptance_en String
+
+  @@map("requirement")
+}
+
+model AuditEvent {
+  id        String   @id
+  at        DateTime @default(now()) @db.Timestamptz
+  actor     String
+  action    String
+  entity    String
+  entity_id String
+  detail    Json
+
+  @@map("audit_event")
+}
