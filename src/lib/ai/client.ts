@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createLlmProvider, getAiModelId } from "@/lib/ai/provider";
 import { z } from "zod";
 import {
   demoExplanationBl77,
@@ -50,16 +50,13 @@ export async function narrateInvoiceSo200(): Promise<{
     return { ...demoInvoiceNarrationSo200(), mode: "demo", flags: [] };
   }
   try {
-    const openai = createOpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_BASE_URL,
-    });
+    const llm = createLlmProvider();
     const schema = z.object({
       narration_en: z.string(),
       narration_vi: z.string(),
     });
     const { object } = await generateObject({
-      model: openai(process.env.AI_MODEL ?? "gpt-4o-mini"),
+      model: llm(getAiModelId()),
       schema,
       prompt:
         "Write bilingual invoice narration for year-end gift boxes. Mention delivery before 15 Dec. Do not state totals or VAT amounts.",
@@ -90,12 +87,9 @@ export async function explainReconcile(
     return { ...fixture, mode: "demo", flags: [] };
   }
   try {
-    const openai = createOpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_BASE_URL,
-    });
+    const llm = createLlmProvider();
     const { object } = await generateObject({
-      model: openai(process.env.AI_MODEL ?? "gpt-4o-mini"),
+      model: llm(getAiModelId()),
       schema: explanationSchema,
       prompt: `Explain bank match candidates: ${candidates.join(", ")}. Do not pick a winner.`,
     });
@@ -131,13 +125,10 @@ export async function shiftCloseNote(
     return { ...demoShiftNoteNh(), mode: "demo" };
   }
   try {
-    const openai = createOpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_BASE_URL,
-    });
+    const llm = createLlmProvider();
     const schema = z.object({ note_en: z.string(), note_vi: z.string() });
     const { object } = await generateObject({
-      model: openai(process.env.AI_MODEL ?? "gpt-4o-mini"),
+      model: llm(getAiModelId()),
       schema,
       prompt: `Summarize shift close facts in plain language: ${JSON.stringify(redactedInput)}`,
     });
