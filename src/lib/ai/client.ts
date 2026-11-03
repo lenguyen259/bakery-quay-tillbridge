@@ -8,6 +8,11 @@ import {
   demoShiftNoteNh,
   explanationSchema,
 } from "./demo-fixtures";
+import {
+  validateInvoiceNarrationSo200,
+  validateReconcileExplanation,
+  validateShiftCloseNote,
+} from "./grounding";
 
 export type AiMode = "demo" | "live" | "fallback";
 
@@ -59,8 +64,12 @@ export async function narrateInvoiceSo200(): Promise<{
       model: llm(getAiModelId()),
       schema,
       prompt:
-        "Write bilingual invoice narration for year-end gift boxes. Mention delivery before 15 Dec. Do not state totals or VAT amounts.",
+        "Write bilingual invoice narration for year-end gift boxes (order so-200). Mention delivery before 15 Dec and the 30 Oct visit note. Do not state invoice totals, VAT amounts, unit prices, or discount percentages.",
     });
+    if (!validateInvoiceNarrationSo200(object.narration_en, object.narration_vi)) {
+      const fix = demoInvoiceNarrationSo200();
+      return { ...fix, mode: "fallback", flags: ["MODEL_NUMBER_DRIFT"] };
+    }
     return { ...object, mode: "live", flags: [] };
   } catch {
     return { ...demoInvoiceNarrationSo200(), mode: "fallback", flags: [] };
@@ -91,17 +100,24 @@ export async function explainReconcile(
     const { object } = await generateObject({
       model: llm(getAiModelId()),
       schema: explanationSchema,
-      prompt: `Explain bank match candidates: ${candidates.join(", ")}. Do not pick a winner.`,
+      prompt: `Explain bank match candidates ${candidates.join(", ")} for line ${bankLineId}. Do not pick a single winner when more than one candidate is listed; say a finance user must choose.`,
     });
     const drift = object.cited_invoice_numbers.some(
       (n) => !candidates.includes(n),
     );
-    if (drift) {
+    const grounded = validateReconcileExplanation(
+      bankLineId,
+      candidates,
+      object.explanation_en,
+      object.explanation_vi,
+      object.cited_invoice_numbers,
+    );
+    if (drift || !grounded) {
       return {
         explanation_en: fixture.explanation_en,
         explanation_vi: fixture.explanation_vi,
         mode: "fallback",
-        flags: ["MODEL_NUMBER_DRIFT"],
+        flags: drift ? ["MODEL_NUMBER_DRIFT"] : ["MODEL_GROUNDING"],
       };
     }
     return {
@@ -130,8 +146,22 @@ export async function shiftCloseNote(
     const { object } = await generateObject({
       model: llm(getAiModelId()),
       schema,
-      prompt: `Summarize shift close facts in plain language: ${JSON.stringify(redactedInput)}`,
+      prompt: `Summarize shift close facts in plain language. Cite the break amount exactly. Do not invent customer tax codes or phone numbers: ${JSON.stringify(redactedInput)}`,
     });
+    const breakVnd =
+      typeof redactedInput.break_vnd === "number"
+        ? redactedInput.break_vnd
+        : 45000;
+    if (
+      !validateShiftCloseNote(
+        object.note_en,
+        object.note_vi,
+        breakVnd,
+        redactedInput,
+      )
+    ) {
+      return { ...demoShiftNoteNh(), mode: "fallback" };
+    }
     return { ...object, mode: "live" };
   } catch {
     return { ...demoShiftNoteNh(), mode: "fallback" };
