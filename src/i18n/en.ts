@@ -5,7 +5,7 @@ export const en: Messages = {
   wordmark: "Quầy",
   demoBanner: "Demo mode — model not called",
   disclaimer:
-    "Đây là bản minh hoạ portfolio cho vị trí AI Implementation Specialist tại Sharon JSC. Không phải hệ thống, sản phẩm hay thương hiệu vận hành chính thức của Sharon. Dữ liệu là dữ liệu giả lập cho một bếp bánh demo tại TP.HCM.",
+    "Portfolio demo for an anonymous bakery / F&B operations programme — not a live production system. Data is fictional for a demo kitchen in Ho Chi Minh City.",
   homeTitle: "What the till still owes",
   homeSubtitle: "Sổ quầy chưa khớp",
   nav: {

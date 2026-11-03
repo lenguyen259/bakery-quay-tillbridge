@@ -1,6 +1,6 @@
 # Quầy Tillbridge
 
-Portfolio demo for a Sharon JSC **AI Implementation Specialist** application. **Not** an official Sharon system.
+Portfolio demo for a fictional HCMC bakery counter (CRM, POS, reconciliation). **Not** a live production system.
 
 **Quầy** — CRM, ERP-style documents, POS shifts, and bank reconciliation in one Postgres schema. VAT and bank matching are pure TypeScript; the LLM explains in Vietnamese/English from redacted payloads only.
 
@@ -53,4 +53,4 @@ Vercel build command: `prisma generate && next build`. Run migrations and seed f
 
 ---
 
-> Đây là bản minh hoạ portfolio cho vị trí AI Implementation Specialist tại Sharon JSC. Không phải hệ thống, sản phẩm hay thương hiệu vận hành chính thức của Sharon. Dữ liệu là dữ liệu giả lập cho một bếp bánh demo tại TP.HCM.
+> Bản minh hoạ portfolio cho chương trình bánh và F&B giả lập — không phải hệ thống sản xuất thật. Dữ liệu là giả lập cho bếp demo tại TP.HCM.
